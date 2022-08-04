@@ -6,6 +6,10 @@ jobs:
     name: Build and push Docker image to Docker Hub
     runs-on: ubuntu-latest
     steps:
+      - name: Extract branch name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: extract_branch
       - name: Check out GitHub repo
         uses: actions/checkout@v2
       - name: Log in to Docker Hub
@@ -17,4 +21,22 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: nomanrns/expense-tracker:${{ github.sha }}
+          tags: nomanrns/expense-tracker:latest-${{ steps.extract_branch.outputs.branch }}
+      - name: Create SSH key
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_PRIVATE_KEY" > ../private.key
+          sudo chmod 600 ../private.key
+          echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i $SSH_KEY_PATH root@58.65.160.225 -p 12345 << EOF
+          docker stop $CONTAINER_NAME
+          docker rm -f $CONTAINER_NAME
+          docker run -d -p 3000:3000 --name $CONTAINER_NAME $IMAGE_NAME
+          EOF
+        shell: bash
+        env:
+          SSH_PRIVATE_KEY: ${{secrets.SSH_PRIVATE_KEY}}
+          SSH_KNOWN_HOSTS: ${{secrets.SSH_KNOWN_HOSTS}}
+          SSH_KEY_PATH: ${{ github.workspace }}/../private.key
+          CONTAINER_NAME: expense-tracker-${{ steps.extract_branch.outputs.branch }}
+          IMAGE_NAME: nomanrns/expense-tracker-${{ steps.extract_branch.outputs.branch }}:latest
