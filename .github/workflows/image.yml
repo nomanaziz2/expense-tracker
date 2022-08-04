@@ -39,4 +39,4 @@ jobs:
           SSH_KNOWN_HOSTS: ${{secrets.SSH_KNOWN_HOSTS}}
           SSH_KEY_PATH: ${{ github.workspace }}/../private.key
           CONTAINER_NAME: expense-tracker-${{ steps.extract_branch.outputs.branch }}
-          IMAGE_NAME: nomanrns/expense-tracker-${{ steps.extract_branch.outputs.branch }}:latest
+          IMAGE_NAME: nomanrns/expense-tracker:latest-${{ steps.extract_branch.outputs.branch }}
