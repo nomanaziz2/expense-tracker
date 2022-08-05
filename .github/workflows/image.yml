@@ -1,4 +1,4 @@
-name: Publish Docker image
+name: Publish & Deploy New Build
 on: [push]
 
 jobs:
@@ -10,18 +10,22 @@ jobs:
         shell: bash
         run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
         id: extract_branch
+
       - name: Check out GitHub repo
         uses: actions/checkout@v2
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
       - name: Build image and push to Docker Hub
         uses: docker/build-push-action@v2
         with:
           push: true
           tags: nomanrns/expense-tracker:latest-${{ steps.extract_branch.outputs.branch }}
+
       - name: Copy Build Script via SCP
         uses: appleboy/scp-action@master
         with:
@@ -32,6 +36,7 @@ jobs:
           source: "scripts/docker-deploy.sh"
           target: "/tmp"
           rm: true
+
       - name: SSH and Deploy
         uses: appleboy/ssh-action@master
         env:
@@ -47,9 +52,25 @@ jobs:
             chmod +x /tmp/scripts/docker-deploy.sh
             /tmp/scripts/docker-deploy.sh $CONTAINER_NAME $IMAGE_NAME
           envs: CONTAINER_NAME, IMAGE_NAME
-      - name: Discord notification
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.WEBHOOK_URL }}
-        uses: Ilshidur/action-discord@master
+
+      - name: Build Success
+        uses: rjstone/discord-webhook-notify@v1
+        if: success()
         with:
-          args: "${{ github.job }} job of ${{ github.repository }}:${{ steps.extract_branch.outputs.branch }} has ${{ job.status }}"
+          severity: info
+          details: Build Succeeded!
+          webhookUrl: ${{ secrets.WEBHOOK_URL }}
+      - name: Build Failure
+        uses: rjstone/discord-webhook-notify@v1
+        if: failure()
+        with:
+          severity: error
+          details: Build Failed!
+          webhookUrl: ${{ secrets.WEBHOOK_URL }}
+      - name: Build Cancelled
+        uses: rjstone/discord-webhook-notify@v1
+        if: cancelled()
+        with:
+          severity: warn
+          details: Build Cancelled!
+          webhookUrl: ${{ secrets.WEBHOOK_URL }}
