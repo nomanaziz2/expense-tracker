@@ -3,7 +3,7 @@ on: [push]
 
 jobs:
   push_to_registry:
-    name: Build and push Docker image to Docker Hub
+    name: Expense Tracker Pipeline
     runs-on: ubuntu-latest
     steps:
       - name: Extract branch name
@@ -22,6 +22,15 @@ jobs:
         with:
           push: true
           tags: nomanrns/expense-tracker:latest-${{ steps.extract_branch.outputs.branch }}
+      - name: Copy Build Script via SCP
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "scripts/docker-deploy.sh"
+          target: "/tmp"
       - name: SSH and Deploy
         uses: appleboy/ssh-action@master
         env:
@@ -34,7 +43,12 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script_stop: true
           script: |
-            docker stop $CONTAINER_NAME
-            docker rm -f $CONTAINER_NAME
-            docker run -d -p 3000:3000 --name $CONTAINER_NAME $IMAGE_NAME
+            chmod +x /tmp/docker-deploy.sh
+            /tmp/docker-deploy.sh $CONTAINER_NAME $IMAGE_NAME
           envs: CONTAINER_NAME, IMAGE_NAME
+      - name: Discord notification
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.WEBHOOK_URL }}
+        uses: Ilshidur/action-discord@master
+        with:
+          args: "${{ github.job }} job of ${{ github.repository }}:${{ steps.extract_branch.outputs.branch }} has ${{ job.status }}"
