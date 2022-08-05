@@ -31,6 +31,7 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           source: "scripts/docker-deploy.sh"
           target: "/tmp"
+          rm: true
       - name: SSH and Deploy
         uses: appleboy/ssh-action@master
         env:
@@ -43,8 +44,8 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script_stop: true
           script: |
-            chmod +x /tmp/docker-deploy.sh
-            /tmp/docker-deploy.sh $CONTAINER_NAME $IMAGE_NAME
+            chmod +x /tmp/scripts/docker-deploy.sh
+            /tmp/scripts/docker-deploy.sh $CONTAINER_NAME $IMAGE_NAME
           envs: CONTAINER_NAME, IMAGE_NAME
       - name: Discord notification
         env:
