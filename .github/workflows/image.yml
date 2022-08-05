@@ -36,5 +36,5 @@ jobs:
           script: |
             docker stop $CONTAINER_NAME
             docker rm -f $CONTAINER_NAME
-            docker run -d -p $PORT:3000 --name $CONTAINER_NAME $IMAGE_NAME
+            docker run -d -p 3000:3000 --name $CONTAINER_NAME $IMAGE_NAME
           envs: CONTAINER_NAME, IMAGE_NAME
