@@ -5,6 +5,7 @@ jobs:
   push_to_registry:
     name: Expense Tracker Pipeline
     runs-on: ubuntu-latest
+    environment: staging
     steps:
       - name: Extract branch name
         shell: bash
@@ -14,63 +15,7 @@ jobs:
       - name: Check out GitHub repo
         uses: actions/checkout@v2
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-
-      - name: Build image and push to Docker Hub
-        uses: docker/build-push-action@v2
-        with:
-          push: true
-          tags: nomanrns/expense-tracker:latest-${{ steps.extract_branch.outputs.branch }}
-
-      - name: Copy Build Script via SCP
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          source: "scripts/docker-deploy.sh"
-          target: "/tmp"
-          rm: true
-
-      - name: SSH and Deploy
-        uses: appleboy/ssh-action@master
-        env:
-          CONTAINER_NAME: "expense-tracker-${{ steps.extract_branch.outputs.branch }}"
-          IMAGE_NAME: "nomanrns/expense-tracker:latest-${{ steps.extract_branch.outputs.branch }}"
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script_stop: true
-          script: |
-            chmod +x /tmp/scripts/docker-deploy.sh
-            /tmp/scripts/docker-deploy.sh $CONTAINER_NAME $IMAGE_NAME
-          envs: CONTAINER_NAME, IMAGE_NAME
-
-      - name: Build Success
-        uses: rjstone/discord-webhook-notify@v1
-        if: success()
-        with:
-          severity: info
-          details: Build Succeeded!
-          webhookUrl: ${{ secrets.WEBHOOK_URL }}
-      - name: Build Failure
-        uses: rjstone/discord-webhook-notify@v1
-        if: failure()
-        with:
-          severity: error
-          details: Build Failed!
-          webhookUrl: ${{ secrets.WEBHOOK_URL }}
-      - name: Build Cancelled
-        uses: rjstone/discord-webhook-notify@v1
-        if: cancelled()
-        with:
-          severity: warn
-          details: Build Cancelled!
-          webhookUrl: ${{ secrets.WEBHOOK_URL }}
+      - name: Checking
+        run: |
+          echo "${{ secrets.MY_GLOBAL_SECRET }}"
+          echo "${{ secrets.MY_SECRET }}"
