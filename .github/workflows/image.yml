@@ -5,7 +5,6 @@ jobs:
   push_to_registry:
     name: Expense Tracker Pipeline
     runs-on: ubuntu-latest
-    environment: staging
     steps:
       - name: Extract branch name
         shell: bash
